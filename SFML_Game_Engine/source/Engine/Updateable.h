@@ -11,6 +11,7 @@ namespace Engine
 			return std::static_pointer_cast<Derived>(shared_from_this());
 		}
 	public:
-		virtual void Update(float deltaTime) = 0;
+		virtual void Update(float deltaTime) {}
+		virtual void Start() {}
 	};
 }

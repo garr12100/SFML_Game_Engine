@@ -123,17 +123,25 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="source\Engine\Components\CCollider.cpp" />
+    <ClCompile Include="source\Engine\Components\CPhysics.cpp" />
+    <ClCompile Include="source\Engine\Rect.cpp" />
     <ClCompile Include="source\Engine\Components\ShapeComponent.cpp" />
     <ClCompile Include="source\Engine\GameObject.cpp" />
     <ClCompile Include="source\Engine\Main.cpp" />
     <ClCompile Include="source\Engine\Transform.cpp" />
+    <ClCompile Include="source\Utility\MathUtility.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="source\Engine\Components\CCollider.h" />
+    <ClInclude Include="source\Engine\Components\CPhysics.h" />
+    <ClInclude Include="source\Engine\Rect.h" />
     <ClInclude Include="source\Engine\Components\Component.h" />
     <ClInclude Include="source\Engine\Components\ShapeComponent.h" />
     <ClInclude Include="source\Engine\GameObject.h" />
     <ClInclude Include="source\Engine\Transform.h" />
     <ClInclude Include="source\Engine\Updateable.h" />
+    <ClInclude Include="source\Utility\MathUtility.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

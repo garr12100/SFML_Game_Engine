@@ -16,6 +16,8 @@ namespace Engine
 		inline sf::RectangleShape GetShape() { return m_Shape; }
 		void SetColor(sf::Color color);
 		bool spin = false;
+		bool move = false;
+
 	
 	};
 }

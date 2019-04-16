@@ -11,6 +11,7 @@ namespace Engine
 		std::shared_ptr<class GameObject> m_GameObject;
 
 	public:
+		inline std::shared_ptr<class GameObject> GetGameObject() { return m_GameObject; }
 		inline void SetGameobject(std::shared_ptr<class GameObject> gameObject) { m_GameObject = gameObject; }
 	};
 }

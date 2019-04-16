@@ -1,4 +1,5 @@
 #include "Transform.h"
+#include <math.h> 
 
 namespace Engine
 {
@@ -20,46 +21,37 @@ namespace Engine
 	sf::Transform Transform::GetMatrix()
 	{
 		sf::Transform matrix;
-		matrix.translate(localPosition);
-		matrix.rotate(localRotation);
-		matrix.scale(localScale);
-		return matrix;
+		matrix.translate(localPosition).rotate(localRotation).scale(localScale);
+		return m_Parent ? m_Parent->GetMatrix() * matrix : matrix;
 	}
 
 	sf::Vector2f Transform::GetPosition()
 	{
-		sf::Vector2f position = localPosition;
-		if (m_Parent)
-		{
-			position += m_Parent->GetPosition();
-		}
+		const float* matrix = GetMatrix().getMatrix();
 
-		return position;
+		return sf::Vector2f(matrix[12], matrix[13]);
 	}
 
 	float Transform::GetRotation()
 	{
-		float rotation = localRotation;
-		if (m_Parent)
-		{
-			rotation += m_Parent->GetRotation();
-			while (rotation > 360)
-				rotation = rotation - 360;
-			while (rotation < 0)
-				rotation = rotation + 360;
-		}
-		return rotation;
+		const float* matrix = GetMatrix().getMatrix();
+		float r = std::atan2f(matrix[1], matrix[0]) * 180.f / 3.14159;
+		return r;
+	}
+
+	float Transform::GetRotationRaw()
+	{
+		const float* matrix = GetMatrix().getMatrix();
+		float r = std::atan2f(matrix[1], matrix[0]);
+		return r;
 	}
 
 	sf::Vector2f Transform::GetScale()
 	{
-		sf::Vector2f scale = localScale;
-		if (m_Parent)
-		{
-			scale.x *= m_Parent->GetScale().x;
-			scale.y *= m_Parent->GetScale().y;
-		}
-		return scale;
+		const float* matrix = GetMatrix().getMatrix();
+		float x = matrix[0] / std::cos(GetRotationRaw());
+		float y = matrix[5] / std::cos(GetRotationRaw());
+		return sf::Vector2f(x, y);
 	}
 
 	void Transform::AddChild(std::shared_ptr<Transform> child)
@@ -72,6 +64,22 @@ namespace Engine
 		auto index = std::find(m_Children.begin(), m_Children.end(), child);
 		if (index != m_Children.end())
 			m_Children.erase(index);
+	}
+
+	void Transform::Translate(sf::Vector2f t)
+	{
+		localPosition += t;
+	}
+
+	void Transform::Rotate(float r)
+	{
+		localRotation += r;
+	}
+
+	void Transform::Scale(sf::Vector2f s)
+	{
+		localScale.x *= s.x;
+		localScale.y *= s.y;
 	}
 
 	void Transform::SetParent(std::shared_ptr<Transform> newParent)
