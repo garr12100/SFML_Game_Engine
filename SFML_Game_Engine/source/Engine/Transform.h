@@ -36,6 +36,7 @@ namespace Engine
 		inline void SetLocalPosition(sf::Vector2f p) { localPosition = p; }
 		inline void SetLocalRotation(float r) { localRotation = r; }
 		inline void SetLocalScale(sf::Vector2f s) { localScale = s; }
+		inline void SetPivot(sf::Vector2f p) { pivot = p; }
 
 		void Translate(sf::Vector2f t);
 		void Rotate(float r);

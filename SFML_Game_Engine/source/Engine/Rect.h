@@ -4,6 +4,14 @@
 
 namespace Engine
 {
+	struct Edge
+	{
+		sf::Vector2f maximumProjectionVertex, v0, v1;
+		Edge(sf::Vector2f max, sf::Vector2f _v0, sf::Vector2f _v1);
+		Edge();
+		inline sf::Vector2f GetVector() { return v1 - v0; }
+	};
+
 	class Rect
 	{
 	private: 
@@ -23,6 +31,8 @@ namespace Engine
 		inline void Set(sf::Vector2f c, float r, sf::Vector2f s) { SetCenter(c); SetRotation(r); SetSize(s); }
 		void GetCorners(sf::Vector2f*);
 		void GetAxes(sf::Vector2f*);
+		Edge GetBestEdge(sf::Vector2f dir);
+
 	};
 }
 

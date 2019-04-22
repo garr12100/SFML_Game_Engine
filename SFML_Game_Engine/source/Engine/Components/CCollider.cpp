@@ -21,23 +21,38 @@ namespace Engine
 		{
 			m_OverlappingWith.push_back(other);
 			std::cout << "Collision Start: " << m_GameObject->name << " overlapping with " << other->m_GameObject->name << ". MTV = " << MTV.x << ", " << MTV.y << std::endl;// << returnOverlap << std::endl;
+			std::cout << "dT = " << deltaTime << std::endl;
 		}
 
 		std::shared_ptr<CPhysics> physics = m_GameObject->GetComponentOfType<CPhysics>();
 		std::shared_ptr<CPhysics> otherPhysics = other->m_GameObject->GetComponentOfType<CPhysics>();
 		if (physics && otherPhysics)
 		{
-			if (!physics->GetStatic())
+			std::vector<sf::Vector2f> contactPoints = FindContactPoint(other, Utility::Normalize(MTV));
+			if (contactPoints.size() > 0)
 			{
-				m_GameObject->GetTransform()->SetLocalPosition(m_GameObject->GetTransform()->GetLocalPosition() - MTV);
-
-				physics->AddForce(-physics->GetMass() * physics->GetVelocity() / deltaTime, sf::Vector2f());
-			}
-			if (!otherPhysics->GetStatic())
-			{
-				other->GetGameObject()->GetTransform()->SetLocalPosition(other->GetGameObject()->GetTransform()->GetLocalPosition() + MTV);
-
-				otherPhysics->AddForce(physics->GetMass() * physics->GetVelocity() / deltaTime, sf::Vector2f());
+				sf::Vector2f averageContactPoint = Utility::Average(contactPoints);
+				for (sf::Vector2f contactPoint : contactPoints)
+				{
+					contactVerts.push_back(sf::Vertex(contactPoint, sf::Color::Cyan));
+				}
+				contactVerts.push_back(sf::Vertex(averageContactPoint, sf::Color::Blue));
+				std::cout << "Average Contact Point = " << averageContactPoint.x << ", " << averageContactPoint.y << std::endl;
+				if (!physics->GetStatic())
+				{
+					//m_GameObject->GetTransform()->SetLocalPosition(m_GameObject->GetTransform()->GetLocalPosition() - MTV);
+					if (contactPoints.size() > 0)
+					{
+						std::cout << "Adding force! " << MTV.y / (deltaTime * deltaTime) << std::endl;
+						physics->AddForce(-physics->GetMass() * MTV / (deltaTime * deltaTime), averageContactPoint);
+					}
+				}
+				if (!otherPhysics->GetStatic())
+				{
+					/*other->GetGameObject()->GetTransform()->SetLocalPosition(other->GetGameObject()->GetTransform()->GetLocalPosition() + MTV);
+					if (contactPoints.size() > 0)
+						otherPhysics->AddForce(physics->GetMass() * MTV / (deltaTime * deltaTime), averageContactPoint);*/
+				}
 			}
 		}
 		else if (!isTrigger && !other->isTrigger)
@@ -51,6 +66,8 @@ namespace Engine
 				other->GetGameObject()->GetTransform()->SetLocalPosition(other->GetGameObject()->GetTransform()->GetLocalPosition() + MTV);
 			}
 		}
+		//Reposition();
+
 		
 	}
 
@@ -62,6 +79,105 @@ namespace Engine
 		scale.x *= sizeOffset.x;
 		scale.y *= sizeOffset.y;
 		m_Rect.Set(position, rotation, scale);
+	}
+
+	std::vector<sf::Vector2f> CCollider::FindContactPoint(std::shared_ptr <CCollider> other, sf::Vector2f dir)
+	{
+		bestEdges.clear();
+		bool flip = false;
+		Edge e1 = m_Rect.GetBestEdge(dir);
+		Edge e2 = other->m_Rect.GetBestEdge(-dir);
+		Edge ref, inc;
+		if (std::abs(Utility::Dot(e1.GetVector(), dir)) <= std::abs(Utility::Dot(e2.GetVector(), dir)))
+		{
+			ref = e1;
+			inc = e2;
+		}
+		else
+		{
+			ref = e2;
+			inc = e1;
+			flip = true;
+		}
+		std::vector<sf::Vertex> be1, be2;
+		be1.push_back(sf::Vertex(e1.v0, sf::Color::Red));
+		be1.push_back(sf::Vertex(e1.v1, sf::Color::Red));
+
+		be2.push_back(sf::Vertex(e2.v0, sf::Color::Red));
+		be2.push_back(sf::Vertex(e2.v1, sf::Color::Red));
+
+		bestEdges.push_back(be1);
+		bestEdges.push_back(be2);
+
+		sf::Vector2f refV = Utility::Normalize(ref.GetVector());
+		float o1 = Utility::Dot(refV, ref.v0);
+		//Clip the incident ege by the first vertex of the reference edge
+		std::vector<sf::Vector2f> clippedPoints = Clip(inc.v0, inc.v1, refV, o1);
+		//if we don't have 2 points left, then fail
+		if (clippedPoints.size() < 2)
+			return std::vector<sf::Vector2f>();
+
+		//Clip what's left of the incident edge by the second vertex of the 
+		//reference edge.  but we ned to cli the opposite direction so we flip 
+		//the direction and offset. 
+		float o2 = Utility::Dot(refV, ref.v1);
+		clippedPoints = Clip(clippedPoints[0], clippedPoints[1], -refV, -o2);
+		//if we don't have 2 points left, then fail
+		if (clippedPoints.size() < 2)
+			return std::vector<sf::Vector2f>();
+
+		//Get the reference edge normal
+		sf::Vector2f refNorm = Utility::GetNormalVector(ref.GetVector());
+		//if we had to flip the incident abnd ref edges then we need to flip
+		//the reference edge normal to clip properly. 
+		if (flip)
+			refNorm *= -1.f;
+		//Get the largest depth: 
+		float max = Utility::Dot(refNorm, ref.maximumProjectionVertex);
+
+		
+		//Make sure the final points are not past this maximum. 
+
+		if (!flip) {
+			if (Utility::Dot(refNorm, clippedPoints[1]) > max)
+				clippedPoints.erase(clippedPoints.begin() + 1);
+
+			if (Utility::Dot(refNorm, clippedPoints[0]) > max)
+				clippedPoints.erase(clippedPoints.begin());
+		}
+		else {
+			if (Utility::Dot(refNorm, clippedPoints[1]) < max)
+				clippedPoints.erase(clippedPoints.begin() + 1);
+
+			if (Utility::Dot(refNorm, clippedPoints[0]) < max)
+				clippedPoints.erase(clippedPoints.begin());
+		}
+
+		return clippedPoints;
+	}
+
+	std::vector<sf::Vector2f> CCollider::Clip(sf::Vector2f v1, sf::Vector2f v2, sf::Vector2f n, float o)
+	{
+		//clip the line segment points v1, v2 if they are past 0 along n
+		std::vector<sf::Vector2f> clippedPoints;
+		float d1 = Utility::Dot(n, v1) - o;
+		float d2 = Utility::Dot(n, v2) - o;
+		//if either point is past o along n then we can keep the point
+		if (d1 >= 0.f) clippedPoints.push_back(v1);
+		if (d2 >= 0.f) clippedPoints.push_back(v2);
+		//finally we need to check if they are on opposing sides so that
+		//we can correctly compute the correct point
+		if (d1 * d2 < 0.f)
+		{
+			//If they are on different sides of the offset, d1 and d2 will be a
+			//(+) * (-) and will yield a (-)
+			sf::Vector2f e = v2 - v1;
+			float u = d1 / (d1 - d2);
+			e *= u;
+			e += v1;
+			clippedPoints.push_back(e);
+		}
+		return clippedPoints;
 	}
 
 	void CCollider::Start()
@@ -162,4 +278,6 @@ namespace Engine
 	{
 		return std::powf(m_Rect.GetSize().x, 2.f) + std::powf(m_Rect.GetSize().y, 2.f) / 12.f;
 	}
+
+	
 }

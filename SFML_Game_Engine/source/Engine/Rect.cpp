@@ -35,4 +35,50 @@ namespace Engine
 		axes[1] = Utility::Normalize(corners[2] - corners[1]);
 	}
 
+	Edge Rect::GetBestEdge(sf::Vector2f dir)
+	{
+		//Find the furthest Vertex in the rect along the direction:
+		sf::Vector2f corners[4];
+		GetCorners(corners);
+		float max = -Utility::MaxFloatValue;
+		int maxIndex = 0;
+		for (int i = 0; i < 4; i++)
+		{
+			float projection = Utility::Dot(dir, corners[i]);
+			if (projection > max)
+			{
+				max = projection;
+				maxIndex = i;
+			}
+		}
+
+		//Now find the edge that is most perpindicular, left or right: 
+		sf::Vector2f vert = corners[maxIndex];
+		sf::Vector2f v1 = corners[(maxIndex + 1) % 4];
+		sf::Vector2f v0 = corners[((maxIndex - 1) + 4) % 4];
+		sf::Vector2f left = vert - v1;
+		sf::Vector2f right = vert - v0;
+		left = Utility::Normalize(left);
+		right = Utility::Normalize(right);
+		if (Utility::Dot(right, dir) <= Utility::Dot(left, dir))
+		{
+			return Edge(vert, v0, vert);
+		}
+		else
+		{
+			return Edge(vert, vert, v1);
+		}
+	}
+
+
+
+	Edge::Edge(sf::Vector2f max, sf::Vector2f _v0, sf::Vector2f _v1)
+		: maximumProjectionVertex(max), v0(_v0), v1(_v1)
+	{
+	}
+
+	Edge::Edge()
+	{
+	}
+
 }

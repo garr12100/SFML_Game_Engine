@@ -19,6 +19,7 @@ namespace Engine
 	public:
 		static float gravity;
 		static float dragCoefficient;
+		static float dragCoefficientAngular;
 		CPhysics();
 		virtual void Start() override;
 		virtual void PhysicsUpdate(float deltaTime);

@@ -30,4 +30,8 @@ namespace Engine
 	{
 		m_Shape.setFillColor(color);
 	}
+	void ShapeComponent::SetSize(sf::Vector2f size)
+	{
+		m_Shape.setSize(size);
+	}
 }

@@ -13,9 +13,13 @@ namespace Engine
 		std::vector<std::shared_ptr<CCollider>> m_OverlappingWith;
 		void HandleCollision(std::shared_ptr<CCollider> other, sf::Vector2f MTV, sf::Vector2f point, float deltaTime);
 		void Reposition();
+		std::vector<sf::Vector2f> FindContactPoint(std::shared_ptr <CCollider> other, sf::Vector2f dir);
+		std::vector<sf::Vector2f> Clip(sf::Vector2f v1, sf::Vector2f v2, sf::Vector2f n, float o);
 	public:
 		static bool debug;
 		bool isTrigger = false;
+		std::vector<sf::Vertex> contactVerts;
+		std::vector<std::vector<sf::Vertex>> bestEdges;
 		sf::Vector2f offset;
 		sf::Vector2f sizeOffset;
 		inline Rect GetRect() { return m_Rect; }

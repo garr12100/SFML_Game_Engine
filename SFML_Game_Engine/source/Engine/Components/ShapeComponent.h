@@ -15,6 +15,7 @@ namespace Engine
 		virtual void Update(float deltaTime) override;
 		inline sf::RectangleShape GetShape() { return m_Shape; }
 		void SetColor(sf::Color color);
+		void SetSize(sf::Vector2f size);
 		bool spin = false;
 		bool move = false;
 

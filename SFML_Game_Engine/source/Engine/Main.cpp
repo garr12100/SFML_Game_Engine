@@ -9,6 +9,7 @@
 #include "Components/CCollider.h"
 #include "Components/CPhysics.h"
 #include <iomanip>      // std::setprecision
+#include <thread>
 
 using namespace Engine;
 
@@ -17,16 +18,16 @@ int main()
 	sf::RenderWindow window(sf::VideoMode(800, 600), "My window");
 	
 
-	std::shared_ptr<Transform> t1 = std::make_shared<Transform>();
-	std::shared_ptr<Transform> t2 = std::make_shared<Transform>();
+	
 
 	CCollider::debug = true;
 
 
 	std::shared_ptr<GameObject> go1 = std::make_shared<GameObject>();
 	go1->name = "Num 1";
-	go1->GetTransform()->SetLocalPosition(sf::Vector2f(400, 300));
+	go1->GetTransform()->SetLocalPosition(sf::Vector2f(300.f, 100.f));
 	go1->GetTransform()->SetLocalScale(sf::Vector2f(4.f, 4.f));
+	go1->GetTransform()->SetLocalRotation(0.f);
 	std::shared_ptr<ShapeComponent> sc1 = std::make_shared<ShapeComponent>();
 	sc1->spin = false;
 	sc1->SetColor(sf::Color::Magenta);
@@ -40,33 +41,39 @@ int main()
 	phys1->SetStatic(true);
 	go1->AddComponent<CPhysics>(phys1);
 
+
 	std::shared_ptr<GameObject> go2= std::make_shared<GameObject>();
 	go2->name = "Num 2";
-	go2->GetTransform()->SetLocalPosition(sf::Vector2f(200.f, 300.f));
-	go2->GetTransform()->SetLocalRotation(0.f);
-	go2->GetTransform()->SetLocalScale(sf::Vector2f(2.f, 1.f));
+	go2->GetTransform()->SetLocalPosition(sf::Vector2f(211.f, 206.5f));
+	go2->GetTransform()->SetLocalRotation(180.f);
+	go2->GetTransform()->SetLocalScale(sf::Vector2f(3.f, 3.f));
 	std::shared_ptr<ShapeComponent> sc2 = std::make_shared<ShapeComponent>();;
+	sc2->SetSize(sf::Vector2f(6.f, 5.f));
 	sc2->SetColor(sf::Color::Red);
 	//sc2->move = true;
 	sc2->spin = false;
 	go2->AddComponent<ShapeComponent>(sc2);
 	std::shared_ptr<CCollider> col2 = std::make_shared<CCollider>();
 	col2->sizeOffset = sc2->GetShape().getSize();
-	col2->isTrigger = true;
+	//col2->isTrigger = true;
 	go2->AddComponent<CCollider>(col2);
 	std::shared_ptr<CPhysics> phys2 = std::make_shared<CPhysics>();
-	phys2->SetVelocity(sf::Vector2f(50.f, 0.f));
+	//phys2->SetVelocity(sf::Vector2f(0.f, 19.6f));
 	phys2->SetHasGravity(false);
-	//go2->AddComponent<CPhysics>(phys2);
+	phys2->SetStatic(false);
+
+	go2->AddComponent<CPhysics>(phys2);
 
 	//go2->GetTransform()->SetParent(go1->GetTransform());
 
 	std::shared_ptr<GameObject> go3 = std::make_shared<GameObject>();
 	go3->name = "Num 3";
-	go3->GetTransform()->SetLocalScale(go2->GetTransform()->GetScale());
-	go3->GetTransform()->SetLocalRotation(go2->GetTransform()->GetRotation());
-	go3->GetTransform()->SetLocalPosition(sf::Vector2f(525.f, 500.f));
-	std::shared_ptr<ShapeComponent> sc3 = std::make_shared<ShapeComponent>();;
+	go3->GetTransform()->SetLocalPosition(sf::Vector2f(325.f, 275.f));
+	go3->GetTransform()->SetLocalScale(sf::Vector2f(2.f, 1.f));
+	go3->GetTransform()->SetLocalRotation(0.f);
+	std::shared_ptr<ShapeComponent> sc3 = std::make_shared<ShapeComponent>();
+	//sc3->SetSize(sf::Vector2f(8.f, 3.f));
+
 	sc3->SetColor(sf::Color::Transparent);
 	//sc3->move = true;
 	//sc3->spin = true;
@@ -74,8 +81,12 @@ int main()
 	std::shared_ptr<CCollider> col3 = std::make_shared<CCollider>();
 	col3->sizeOffset = sc3->GetShape().getSize();
 	go3->AddComponent<CCollider>(col3);
+	//col3->isTrigger = true;
 	std::shared_ptr<CPhysics> phys3 = std::make_shared<CPhysics>();
-	phys3->SetVelocity(sf::Vector2f(0.f, 19.6f));
+	phys3->SetStatic(false);
+	phys3->SetMass(1.f);
+	phys3->SetVelocity(sf::Vector2f(0.f, 0.f));
+	phys3->SetHasGravity(true);
 	go3->AddComponent<CPhysics>(phys3);
 
 	//go1->GetTransform()->SetLocalRotation(100.f);
@@ -96,15 +107,23 @@ int main()
 
 
 	GameObject::Instantiate(go1);
-	GameObject::Instantiate(go2);
+	//GameObject::Instantiate(go2);
 	GameObject::Instantiate(go3);
 
 	sf::Clock clock;
-
+	float t = 0.f;
+	float timeScale = 1.f;
+	float fixedDeltaTime = 0.f;
+	float physicsFrameRate = 60.f;
 	// run the program as long as the window is open
 	while (window.isOpen())
 	{
-		float deltaTime = clock.restart().asSeconds();
+		//std::this_thread::sleep_for(
+		float deltaTimeOriginal = clock.restart().asSeconds();
+		float deltaTime = deltaTimeOriginal * timeScale;
+		t += deltaTimeOriginal;
+		fixedDeltaTime += deltaTimeOriginal;
+
 		// check all the window's events that were triggered since the last iteration of the loop
 		sf::Event event;
 		while (window.pollEvent(event))
@@ -123,20 +142,25 @@ int main()
 		}
 		//phys2->SetVelocity(sf::Vector2f(50.f, phys2->GetVelocity().y));
 
-		//Then calculate physics/collision
-		for (std::shared_ptr<GameObject> go : gameObjects)
+		//Then calculate physics/collision, using only Fixed Delta Time
+		if (fixedDeltaTime >= 1.f / physicsFrameRate)
 		{
-			std::vector<std::shared_ptr<CPhysics>> physicsComps = go->GetComponentsOfType<CPhysics>();
-			for (std::shared_ptr<CPhysics> physicsComp : physicsComps)
+			//fixedDeltaTime = 1.f / physicsFrameRate;
+			for (std::shared_ptr<GameObject> go : gameObjects)
 			{
-				physicsComp->PhysicsUpdate(deltaTime);
-			}
+				std::vector<std::shared_ptr<CCollider>> colliders = go->GetComponentsOfType<CCollider>();
+				for (std::shared_ptr<CCollider> collider : colliders)
+				{
+					collider->CheckForCollisions(fixedDeltaTime);
+				}
 
-			std::vector<std::shared_ptr<CCollider>> colliders = go->GetComponentsOfType<CCollider>();
-			for (std::shared_ptr<CCollider> collider : colliders)
-			{
-				collider->CheckForCollisions(deltaTime);
+				std::vector<std::shared_ptr<CPhysics>> physicsComps = go->GetComponentsOfType<CPhysics>();
+				for (std::shared_ptr<CPhysics> physicsComp : physicsComps)
+				{
+					physicsComp->PhysicsUpdate(fixedDeltaTime);
+				}
 			}
+			fixedDeltaTime = 0.f;
 		}
 
 
@@ -165,6 +189,13 @@ int main()
 				sf::Vertex outline[5];
 				col->GetDebugOutline(outline);
 				window.draw(outline, 5, sf::LineStrip);
+				for (auto bestEdge : col->bestEdges)
+				{
+					window.draw(&bestEdge[0], bestEdge.size(), sf::Lines);
+				}
+				if(col->contactVerts.size() > 0)
+					window.draw(&col->contactVerts[0], col->contactVerts.size(), sf::Points);
+
 			}
 
 		}
