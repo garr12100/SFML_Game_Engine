@@ -41,7 +41,7 @@ int main()
 	phys1->SetHasGravity(false);
 	//phys1->SetStatic(true);
 	phys1->SetMass(10.f);
-	phys1->SetVelocity(sf::Vector2f(0.f, 100.f));
+	phys1->SetVelocity(sf::Vector2f(0.f, 75.f));
 	go1->AddComponent<CPhysics>(phys1);
 
 

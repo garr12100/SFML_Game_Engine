@@ -15,10 +15,11 @@ namespace Engine
 
 	void CCollider::HandleCollision(std::shared_ptr<CCollider> other, sf::Vector2f MTV, sf::Vector2f point, float deltaTime)
 	{
-
+		bool newCollision = false;
 		auto index = std::find(m_OverlappingWith.begin(), m_OverlappingWith.end(), other);
 		if (index == m_OverlappingWith.end())
 		{
+			newCollision = true;
 			m_OverlappingWith.push_back(other);
 			std::cout << "Collision Start: " << m_GameObject->name << " overlapping with " << other->m_GameObject->name << ". MTV = " << MTV.x << ", " << MTV.y << std::endl;// << returnOverlap << std::endl;
 			std::cout << "dT = " << deltaTime << std::endl;
@@ -26,7 +27,7 @@ namespace Engine
 
 		std::shared_ptr<CPhysics> physics = m_GameObject->GetComponentOfType<CPhysics>();
 		std::shared_ptr<CPhysics> otherPhysics = other->m_GameObject->GetComponentOfType<CPhysics>();
-		if (physics && otherPhysics)
+		if (newCollision && physics && otherPhysics)
 		{
 			std::vector<sf::Vector2f> contactPoints = FindContactPoint(other, Utility::Normalize(MTV));
 			if (contactPoints.size() > 0)
@@ -90,7 +91,7 @@ namespace Engine
 							physics->AddForce(-physics->GetMass() * myEffect * 2.f * myEffectPercent / (deltaTime * deltaTime) , averageContactPoint);
 						}
 */
-						other->GetGameObject()->GetTransform()->SetLocalPosition(other->GetGameObject()->GetTransform()->GetLocalPosition() - (dp2 * 2.f));
+						//other->GetGameObject()->GetTransform()->SetLocalPosition(other->GetGameObject()->GetTransform()->GetLocalPosition() - (dp2 * 2.f));
 
 					}
 					if (!physics->GetStatic())
