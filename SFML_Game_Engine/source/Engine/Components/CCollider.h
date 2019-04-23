@@ -15,6 +15,7 @@ namespace Engine
 		void Reposition();
 		std::vector<sf::Vector2f> FindContactPoint(std::shared_ptr <CCollider> other, sf::Vector2f dir);
 		std::vector<sf::Vector2f> Clip(sf::Vector2f v1, sf::Vector2f v2, sf::Vector2f n, float o);
+		sf::Transform m_PreviousTransform;
 	public:
 		static bool debug;
 		bool isTrigger = false;
@@ -28,5 +29,6 @@ namespace Engine
 		void CheckForCollisions(float deltaTime);
 		void CheckForCollision(std::shared_ptr<CCollider> other, float deltaTime);
 		float GetMomentOfInertia();
+		void ResetPreviousTransform();
 	};
 }

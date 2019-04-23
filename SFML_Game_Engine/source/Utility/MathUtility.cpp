@@ -80,4 +80,26 @@ namespace Utility
 		
 		return average;
 	}
+
+	sf::Vertex& TransformVertex(const sf::Transform & t, sf::Vertex & v)
+	{
+		v.position = t.transformPoint(v.position);
+		return v;
+	}
+
+	std::vector<sf::Vertex> TransformVertices(const sf::Transform & t, std::vector<sf::Vertex> v)
+	{
+		for (int i = 0; i < v.size(); i++)
+		{
+			v[i] = TransformVertex(t, v[i]);
+		}
+		return v;
+	}
+	void TransformVertices(const sf::Transform & t, sf::Vertex * v, int count)
+	{
+		for (int i = 0; i < count; i++)
+		{
+			TransformVertex(t, v[i]);
+		}
+	}
 }

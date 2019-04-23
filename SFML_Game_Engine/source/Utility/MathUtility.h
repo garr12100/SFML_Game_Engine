@@ -18,4 +18,7 @@ namespace Utility
 	float Max(float* floatArray, int count);
 	float Min(float* floatArray, int count);
 	sf::Vector2f Average(std::vector<sf::Vector2f> vv);
+	sf::Vertex& TransformVertex(const sf::Transform& t, sf::Vertex& v);
+	std::vector<sf::Vertex> TransformVertices(const sf::Transform& t, std::vector<sf::Vertex> v);
+	void TransformVertices(const sf::Transform& t, sf::Vertex* v, int count);
 }

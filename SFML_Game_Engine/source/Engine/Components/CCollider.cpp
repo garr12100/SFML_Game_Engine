@@ -37,22 +37,79 @@ namespace Engine
 					contactVerts.push_back(sf::Vertex(contactPoint, sf::Color::Cyan));
 				}
 				contactVerts.push_back(sf::Vertex(averageContactPoint, sf::Color::Blue));
-				std::cout << "Average Contact Point = " << averageContactPoint.x << ", " << averageContactPoint.y << std::endl;
-				if (!physics->GetStatic())
-				{
-					//m_GameObject->GetTransform()->SetLocalPosition(m_GameObject->GetTransform()->GetLocalPosition() - MTV);
-					if (contactPoints.size() > 0)
+				//std::cout << "Average Contact Point = " << averageContactPoint.x << ", " << averageContactPoint.y << std::endl;
+				//Figure out who did the penetrating: 
+				sf::Transform currentMatrix = m_GameObject->GetTransform()->GetMatrix();
+				sf::Transform inverseMatrix = m_GameObject->GetTransform()->GetMatrix().getInverse();
+				sf::Vector2f inversePoint = m_GameObject->GetTransform()->GetMatrix().getInverse().transformPoint(averageContactPoint);
+				//std::cout << "Inv. Transf. Contact Point = " << inversePoint.x << ", " << inversePoint.y << std::endl;
+				sf::Vector2f previousContactPoint = m_PreviousTransform.transformPoint(inversePoint);
+				//std::cout << "Previous Contact Point = " << previousContactPoint.x << ", " << previousContactPoint.y << std::endl;
+				sf::Vector2f myEffect = averageContactPoint - previousContactPoint;
+				//std::cout << "My Effect = " << myEffect.x << ", " << myEffect.y << std::endl;
+				float myEffectMag = Utility::Magnitude(myEffect);
+				//std::cout << "My Effect Mag = " << myEffectMag << std::endl;
+				sf::Vector2f myEffectDir = Utility::Normalize(myEffect);
+				sf::Vector2f dirToOther = Utility::Normalize(m_GameObject->GetTransform()->GetPosition() - other->m_GameObject->GetTransform()->GetPosition());
+				if (Utility::Dot(myEffectDir, dirToOther) > 0.f)
+					myEffectMag = 0.f;
+
+				sf::Transform other_currentMatrix = other->m_GameObject->GetTransform()->GetMatrix();
+				sf::Transform other_inverseMatrix = other->m_GameObject->GetTransform()->GetMatrix().getInverse();
+				sf::Vector2f other_inversePoint = other->m_GameObject->GetTransform()->GetMatrix().getInverse().transformPoint(averageContactPoint);
+				//std::cout << "Other Inv. Transf. Contact Point = " << other_inversePoint.x << ", " << other_inversePoint.y << std::endl;
+				sf::Vector2f other_previousContactPoint = other->m_PreviousTransform.transformPoint(other_inversePoint);
+				//std::cout << "Other Previous Contact Point = " << other_previousContactPoint.x << ", " << other_previousContactPoint.y << std::endl;
+				sf::Vector2f otherEffect = averageContactPoint - other_previousContactPoint;
+				//std::cout << "Other Effect = " << otherEffect.x << ", " << otherEffect.y << std::endl;
+				float otherEffectMag = Utility::Magnitude(otherEffect);
+				//std::cout << "Other Effect Mag = " << otherEffectMag << std::endl;
+
+				float totalEffect = myEffectMag + otherEffectMag;
+				float myEffectPercent = myEffectMag / totalEffect;
+				float otherEffectPercent = otherEffectMag / totalEffect;
+				if (m_GameObject->name != "Num 3")
+					int a = 100;
+				else
+					int b = 100;
+				//if (totalEffect > 0.f)
+				//{
+					
+					//sf::Vector2f force = (physics->GetMass() * myEffectMag * Utility::Normalize(MTV) * myEffectPercent / (deltaTime * deltaTime)) - (otherPhysics->GetMass() * otherEffectMag * Utility::Normalize(MTV) * otherEffectPercent / (deltaTime * deltaTime));
+					sf::Vector2f dp1 = myEffect;
+					sf::Vector2f dp2 = otherEffect;
+					float m1 = physics->GetMass();
+					float m2 = otherPhysics->GetMass();
+					float dt = deltaTime;
+					sf::Vector2f force = m2*(((2 * m1 * dp1) + ((m2 - m1) * dp2)) / (dt*dt*(m1 + m2))) - ((m2 * dp2) / (dt * dt));
+					if (!otherPhysics->GetStatic())
 					{
-						std::cout << "Adding force! " << MTV.y / (deltaTime * deltaTime) << std::endl;
-						physics->AddForce(-physics->GetMass() * MTV / (deltaTime * deltaTime), averageContactPoint);
+						/*if (contactPoints.size() > 0)
+						{
+							std::cout << "Adding force! " << MTV.y / (deltaTime * deltaTime) << std::endl;
+							physics->AddForce(-physics->GetMass() * myEffect * 2.f * myEffectPercent / (deltaTime * deltaTime) , averageContactPoint);
+						}
+*/
+						other->GetGameObject()->GetTransform()->SetLocalPosition(other->GetGameObject()->GetTransform()->GetLocalPosition() - (dp2 * 2.f));
+
 					}
-				}
-				if (!otherPhysics->GetStatic())
-				{
-					/*other->GetGameObject()->GetTransform()->SetLocalPosition(other->GetGameObject()->GetTransform()->GetLocalPosition() + MTV);
-					if (contactPoints.size() > 0)
-						otherPhysics->AddForce(physics->GetMass() * MTV / (deltaTime * deltaTime), averageContactPoint);*/
-				}
+					if (!physics->GetStatic())
+					{
+						/*if (contactPoints.size() > 0)
+						{
+							std::cout << "Adding force! " << MTV.y / (deltaTime * deltaTime) << std::endl;
+							physics->AddForce(-physics->GetMass() * myEffect * 2.f * myEffectPercent / (deltaTime * deltaTime) , averageContactPoint);
+						}
+*/
+						//m_GameObject->GetTransform()->SetLocalPosition(m_GameObject->GetTransform()->GetLocalPosition() - (dp * 2.f));
+
+					}
+					//if (!otherPhysics->GetStatic())
+					//{
+						if (contactPoints.size() > 0)
+							otherPhysics->AddForce(force, averageContactPoint);
+					//}
+				//}
 			}
 		}
 		else if (!isTrigger && !other->isTrigger)
@@ -214,6 +271,12 @@ namespace Engine
 					CheckForCollision(collider, deltaTime);
 			}
 		}
+
+	}
+
+	void CCollider::ResetPreviousTransform()
+	{
+		m_PreviousTransform = m_GameObject->GetTransform()->GetMatrix();
 	}
 
 	void CCollider::CheckForCollision(std::shared_ptr<CCollider> other, float deltaTime)
