@@ -14,7 +14,7 @@ namespace Engine
 	{
 	}
 
-	void Rect::GetCorners(sf::Vector2f* corners)
+	void Rect::GetCorners(sf::Vector2f* corners) const
 	{
 		sf::Transform matrix;
 		matrix.translate(m_Center).rotate(m_Rotation).scale(GetSize());
@@ -25,7 +25,7 @@ namespace Engine
 		corners[3] = matrix.transformPoint(-0.5f, -0.5f);
 	}
 
-	void Rect::GetAxes(sf::Vector2f* axes)
+	void Rect::GetAxes(sf::Vector2f* axes) const
 	{
 		sf::Vector2f corners[4]; 
 		GetCorners(corners);
@@ -35,7 +35,7 @@ namespace Engine
 		axes[1] = Utility::Normalize(corners[2] - corners[1]);
 	}
 
-	Edge Rect::GetBestEdge(sf::Vector2f dir)
+	Edge Rect::GetBestEdge(const sf::Vector2f& dir) const
 	{
 		//Find the furthest Vertex in the rect along the direction:
 		sf::Vector2f corners[4];

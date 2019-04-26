@@ -18,35 +18,35 @@ namespace Engine
 		
 	}
 
-	sf::Transform Transform::GetMatrix()
+	sf::Transform Transform::GetMatrix() const
 	{
 		sf::Transform matrix;
 		matrix.translate(localPosition).rotate(localRotation).scale(localScale);
 		return m_Parent ? m_Parent->GetMatrix() * matrix : matrix;
 	}
 
-	sf::Vector2f Transform::GetPosition()
+	sf::Vector2f Transform::GetPosition() const
 	{
 		const float* matrix = GetMatrix().getMatrix();
 
 		return sf::Vector2f(matrix[12], matrix[13]);
 	}
 
-	float Transform::GetRotation()
+	float Transform::GetRotation() const
 	{
 		const float* matrix = GetMatrix().getMatrix();
 		float r = std::atan2f(matrix[1], matrix[0]) * 180.f / 3.14159;
 		return r;
 	}
 
-	float Transform::GetRotationRaw()
+	float Transform::GetRotationRaw() const
 	{
 		const float* matrix = GetMatrix().getMatrix();
 		float r = std::atan2f(matrix[1], matrix[0]);
 		return r;
 	}
 
-	sf::Vector2f Transform::GetScale()
+	sf::Vector2f Transform::GetScale() const
 	{
 		const float* matrix = GetMatrix().getMatrix();
 		float x = matrix[0] / std::cos(GetRotationRaw());
@@ -66,7 +66,7 @@ namespace Engine
 			m_Children.erase(index);
 	}
 
-	void Transform::Translate(sf::Vector2f t)
+	void Transform::Translate(const sf::Vector2f& t)
 	{
 		localPosition += t;
 	}
@@ -76,7 +76,7 @@ namespace Engine
 		localRotation += r;
 	}
 
-	void Transform::Scale(sf::Vector2f s)
+	void Transform::Scale(const sf::Vector2f& s)
 	{
 		localScale.x *= s.x;
 		localScale.y *= s.y;

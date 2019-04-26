@@ -125,6 +125,7 @@
   <ItemGroup>
     <ClCompile Include="source\Engine\Components\CCollider.cpp" />
     <ClCompile Include="source\Engine\Components\CPhysics.cpp" />
+    <ClCompile Include="source\Engine\Raycast.cpp" />
     <ClCompile Include="source\Engine\Rect.cpp" />
     <ClCompile Include="source\Engine\Components\ShapeComponent.cpp" />
     <ClCompile Include="source\Engine\GameObject.cpp" />
@@ -135,6 +136,7 @@
   <ItemGroup>
     <ClInclude Include="source\Engine\Components\CCollider.h" />
     <ClInclude Include="source\Engine\Components\CPhysics.h" />
+    <ClInclude Include="source\Engine\Raycast.h" />
     <ClInclude Include="source\Engine\Rect.h" />
     <ClInclude Include="source\Engine\Components\Component.h" />
     <ClInclude Include="source\Engine\Components\ShapeComponent.h" />

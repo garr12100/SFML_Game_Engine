@@ -2,6 +2,11 @@
 
 namespace Utility
 {
+	float Distance(const sf::Vector2f & a, const sf::Vector2f & b)
+	{
+		return Magnitude(b - a);
+	}
+
 	float Dot(const sf::Vector2f& a, const sf::Vector2f& b)
 	{
 		return a.x * b.x + a.y * b.y;
@@ -11,7 +16,6 @@ namespace Utility
 	{
 		return a.x * b.y - a.y * b.x;
 	}
-
 
 	sf::Vector2f Cross(const sf::Vector2f& a, float s)
 	{
@@ -33,7 +37,7 @@ namespace Utility
 		return v / Magnitude(v);
 	}
 
-	sf::Vector2f GetNormalVector(const sf::Vector2f& v)
+	sf::Vector2f GetOrthogonalVector(const sf::Vector2f& v)
 	{
 		return Normalize(sf::Vector2f(-v.y, v.x));
 	}
@@ -81,6 +85,21 @@ namespace Utility
 		return average;
 	}
 
+	float Average(float * a, int count)
+	{
+		if (count == 0)
+			return 0.f;
+		float average = 0;
+		for (int i = 0; i < count; i++)
+		{
+			average += a[i];
+		}
+
+		average /= (float)count;
+
+		return average;
+	}
+
 	sf::Vertex& TransformVertex(const sf::Transform & t, sf::Vertex & v)
 	{
 		v.position = t.transformPoint(v.position);
@@ -89,7 +108,7 @@ namespace Utility
 
 	std::vector<sf::Vertex> TransformVertices(const sf::Transform & t, std::vector<sf::Vertex> v)
 	{
-		for (int i = 0; i < v.size(); i++)
+		for (unsigned int i = 0; i < v.size(); i++)
 		{
 			v[i] = TransformVertex(t, v[i]);
 		}

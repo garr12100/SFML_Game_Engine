@@ -13,22 +13,31 @@ namespace Engine
 	bool CCollider::debug = false;
 
 
-	void CCollider::HandleCollision(std::shared_ptr<CCollider> other, sf::Vector2f MTV, sf::Vector2f point, float deltaTime)
+	void CCollider::HandleCollision(std::shared_ptr<CCollider> other, const sf::Vector2f& MTV, const sf::Vector2f& point, float deltaTime)
 	{
+		//If MTV too small, do nothing: 
+		if (Utility::Magnitude(MTV) < .001)
+			return;
 		bool newCollision = false;
+		//Check to see if this collision already existed previous frame:
 		auto index = std::find(m_OverlappingWith.begin(), m_OverlappingWith.end(), other);
 		if (index == m_OverlappingWith.end())
 		{
 			newCollision = true;
 			m_OverlappingWith.push_back(other);
-			std::cout << "Collision Start: " << m_GameObject->name << " overlapping with " << other->m_GameObject->name << ". MTV = " << MTV.x << ", " << MTV.y << std::endl;// << returnOverlap << std::endl;
-			std::cout << "dT = " << deltaTime << std::endl;
+			//std::cout << "Collision Start: " << m_GameObject->name << " overlapping with " << other->m_GameObject->name << ". MTV = " << MTV.x << ", " << MTV.y << std::endl;// << returnOverlap << std::endl;
+			//std::cout << "dT = " << deltaTime << std::endl;
 		}
 
 		std::shared_ptr<CPhysics> physics = m_GameObject->GetComponentOfType<CPhysics>();
 		std::shared_ptr<CPhysics> otherPhysics = other->m_GameObject->GetComponentOfType<CPhysics>();
-		if (newCollision && physics && otherPhysics)
+		if (isTrigger || other->isTrigger)
 		{
+			//Fire trigger event, don't resolve collsision
+		}
+		else if (newCollision && physics && otherPhysics)
+		{
+			//Physics based collision resolution
 			std::vector<sf::Vector2f> contactPoints = FindContactPoint(other, Utility::Normalize(MTV));
 			if (contactPoints.size() > 0)
 			{
@@ -38,95 +47,55 @@ namespace Engine
 					contactVerts.push_back(sf::Vertex(contactPoint, sf::Color::Cyan));
 				}
 				contactVerts.push_back(sf::Vertex(averageContactPoint, sf::Color::Blue));
-				//std::cout << "Average Contact Point = " << averageContactPoint.x << ", " << averageContactPoint.y << std::endl;
-				//Figure out who did the penetrating: 
-				sf::Transform currentMatrix = m_GameObject->GetTransform()->GetMatrix();
-				sf::Transform inverseMatrix = m_GameObject->GetTransform()->GetMatrix().getInverse();
+
+				//Transform the collision point to the collider's previous Transform to get an estimate of impact velocity: 
 				sf::Vector2f inversePoint = m_GameObject->GetTransform()->GetMatrix().getInverse().transformPoint(averageContactPoint);
-				//std::cout << "Inv. Transf. Contact Point = " << inversePoint.x << ", " << inversePoint.y << std::endl;
 				sf::Vector2f previousContactPoint = m_PreviousTransform.transformPoint(inversePoint);
-				//std::cout << "Previous Contact Point = " << previousContactPoint.x << ", " << previousContactPoint.y << std::endl;
-				sf::Vector2f myEffect = averageContactPoint - previousContactPoint;
-				//std::cout << "My Effect = " << myEffect.x << ", " << myEffect.y << std::endl;
-				float myEffectMag = Utility::Magnitude(myEffect);
-				//std::cout << "My Effect Mag = " << myEffectMag << std::endl;
-				sf::Vector2f myEffectDir = Utility::Normalize(myEffect);
+				sf::Vector2f impactVelocity = averageContactPoint - previousContactPoint;
+				float impactVelocityMagnitude = Utility::Magnitude(impactVelocity);
+				sf::Vector2f impactVelocitytDir = Utility::Normalize(impactVelocity);
 				sf::Vector2f dirToOther = Utility::Normalize(m_GameObject->GetTransform()->GetPosition() - other->m_GameObject->GetTransform()->GetPosition());
-				if (Utility::Dot(myEffectDir, dirToOther) > 0.f)
-					myEffectMag = 0.f;
+				//Orient magnitude of impact Velocity. 
+				if (Utility::Dot(impactVelocitytDir, dirToOther) > 0.f)
+					impactVelocityMagnitude *= -1.f;
+				//Apply bounciness of physics object: 
+				impactVelocityMagnitude *= physics->GetBounciness();
 
-				sf::Transform other_currentMatrix = other->m_GameObject->GetTransform()->GetMatrix();
-				sf::Transform other_inverseMatrix = other->m_GameObject->GetTransform()->GetMatrix().getInverse();
+				//Find the impact velocity of the Other collider: 
 				sf::Vector2f other_inversePoint = other->m_GameObject->GetTransform()->GetMatrix().getInverse().transformPoint(averageContactPoint);
-				//std::cout << "Other Inv. Transf. Contact Point = " << other_inversePoint.x << ", " << other_inversePoint.y << std::endl;
 				sf::Vector2f other_previousContactPoint = other->m_PreviousTransform.transformPoint(other_inversePoint);
-				//std::cout << "Other Previous Contact Point = " << other_previousContactPoint.x << ", " << other_previousContactPoint.y << std::endl;
-				sf::Vector2f otherEffect = averageContactPoint - other_previousContactPoint;
-				//std::cout << "Other Effect = " << otherEffect.x << ", " << otherEffect.y << std::endl;
-				float otherEffectMag = Utility::Magnitude(otherEffect);
-				//std::cout << "Other Effect Mag = " << otherEffectMag << std::endl;
+				sf::Vector2f otherImpactVelocity = averageContactPoint - other_previousContactPoint;
+				float otherImpactVelocityMagnitude = Utility::Magnitude(otherImpactVelocity);
+				sf::Vector2f otherImpactVelocitytDir = Utility::Normalize(otherImpactVelocity);
+				sf::Vector2f dirToThis = -dirToOther;
+				//Orient magnitude of impact Velocity. 
+				if (Utility::Dot(otherImpactVelocitytDir, dirToThis) < 0.f)
+					otherImpactVelocityMagnitude *= -1.f;
+				otherImpactVelocityMagnitude *= otherPhysics->GetBounciness();
 
-				float totalEffect = myEffectMag + otherEffectMag;
-				float myEffectPercent = myEffectMag / totalEffect;
-				float otherEffectPercent = otherEffectMag / totalEffect;
-				if (m_GameObject->name != "Num 3")
-					int a = 100;
-				else
-					int b = 100;
-				//if (totalEffect > 0.f)
-				//{
-					
-					//sf::Vector2f force = (physics->GetMass() * myEffectMag * Utility::Normalize(MTV) * myEffectPercent / (deltaTime * deltaTime)) - (otherPhysics->GetMass() * otherEffectMag * Utility::Normalize(MTV) * otherEffectPercent / (deltaTime * deltaTime));
-					sf::Vector2f dp1 = myEffect;
-					sf::Vector2f dp2 = otherEffect;
-					float m1 = physics->GetMass();
-					float m2 = otherPhysics->GetMass();
-					float dt = deltaTime;
-					sf::Vector2f force = m2*(((2 * m1 * dp1) + ((m2 - m1) * dp2)) / (dt*dt*(m1 + m2))) - ((m2 * dp2) / (dt * dt));
-					if (!otherPhysics->GetStatic())
-					{
-						/*if (contactPoints.size() > 0)
-						{
-							std::cout << "Adding force! " << MTV.y / (deltaTime * deltaTime) << std::endl;
-							physics->AddForce(-physics->GetMass() * myEffect * 2.f * myEffectPercent / (deltaTime * deltaTime) , averageContactPoint);
-						}
-*/
-						//other->GetGameObject()->GetTransform()->SetLocalPosition(other->GetGameObject()->GetTransform()->GetLocalPosition() - (dp2 * 2.f));
 
-					}
-					if (!physics->GetStatic())
-					{
-						/*if (contactPoints.size() > 0)
-						{
-							std::cout << "Adding force! " << MTV.y / (deltaTime * deltaTime) << std::endl;
-							physics->AddForce(-physics->GetMass() * myEffect * 2.f * myEffectPercent / (deltaTime * deltaTime) , averageContactPoint);
-						}
-*/
-						//m_GameObject->GetTransform()->SetLocalPosition(m_GameObject->GetTransform()->GetLocalPosition() - (dp * 2.f));
+				//Get Delta Positions, masses, and calculate force to apply: 
+				sf::Vector2f dp1 =  impactVelocityMagnitude * Utility::Normalize(MTV);
+				sf::Vector2f dp2 =  otherImpactVelocityMagnitude * Utility::Normalize(MTV);
+				float m1 = physics->GetMass();
+				float m2 = otherPhysics->GetMass();
+				sf::Vector2f force = m2 * (((2 * m1 * dp1) + ((m2 - m1) * dp2)) / (deltaTime * deltaTime * (m1 + m2))) - ((m2 * dp2) / (deltaTime * deltaTime));
 
-					}
-					//if (!otherPhysics->GetStatic())
-					//{
-						if (contactPoints.size() > 0)
-							otherPhysics->AddForce(force, averageContactPoint);
-					//}
-				//}
+				//Apply force at point:
+				if (contactPoints.size() > 0 && !std::isnan(force.x) && !std::isnan(force.y))
+					otherPhysics->AddForce(force, averageContactPoint);
+
 			}
 		}
-		else if (!isTrigger && !other->isTrigger)
+		else
 		{
-			if (!physics || !physics->GetStatic())
+			//Non physics based collision resolution
+			if ( (!physics || !physics->GetStatic()))
 			{
 				m_GameObject->GetTransform()->SetLocalPosition(m_GameObject->GetTransform()->GetLocalPosition() - MTV);
 			}
-			if (!otherPhysics || !otherPhysics->GetStatic())
-			{
-				other->GetGameObject()->GetTransform()->SetLocalPosition(other->GetGameObject()->GetTransform()->GetLocalPosition() + MTV);
-			}
 		}
-		//Reposition();
-
-		
+		Reposition();
 	}
 
 	void CCollider::Reposition()
@@ -139,7 +108,7 @@ namespace Engine
 		m_Rect.Set(position, rotation, scale);
 	}
 
-	std::vector<sf::Vector2f> CCollider::FindContactPoint(std::shared_ptr <CCollider> other, sf::Vector2f dir)
+	std::vector<sf::Vector2f> CCollider::FindContactPoint(std::shared_ptr <CCollider> other, const sf::Vector2f& dir)
 	{
 		bestEdges.clear();
 		bool flip = false;
@@ -185,7 +154,7 @@ namespace Engine
 			return std::vector<sf::Vector2f>();
 
 		//Get the reference edge normal
-		sf::Vector2f refNorm = Utility::GetNormalVector(ref.GetVector());
+		sf::Vector2f refNorm = Utility::GetOrthogonalVector(ref.GetVector());
 		//if we had to flip the incident abnd ref edges then we need to flip
 		//the reference edge normal to clip properly. 
 		if (flip)
@@ -193,7 +162,7 @@ namespace Engine
 		//Get the largest depth: 
 		float max = Utility::Dot(refNorm, ref.maximumProjectionVertex);
 
-		
+
 		//Make sure the final points are not past this maximum. 
 
 		if (!flip) {
@@ -214,7 +183,7 @@ namespace Engine
 		return clippedPoints;
 	}
 
-	std::vector<sf::Vector2f> CCollider::Clip(sf::Vector2f v1, sf::Vector2f v2, sf::Vector2f n, float o)
+	std::vector<sf::Vector2f> CCollider::Clip(const sf::Vector2f& v1, const sf::Vector2f& v2, const sf::Vector2f& n, float o)
 	{
 		//clip the line segment points v1, v2 if they are past 0 along n
 		std::vector<sf::Vector2f> clippedPoints;
@@ -243,7 +212,7 @@ namespace Engine
 		Reposition();
 	}
 
-	void CCollider::GetDebugOutline(sf::Vertex* debugOutline)
+	void CCollider::GetDebugOutline(sf::Vertex* debugOutline) const
 	{
 		//Start with top left point, go clockwise: 
 		sf::Vector2f corners[4];
@@ -268,7 +237,7 @@ namespace Engine
 			std::vector<std::shared_ptr<CCollider>> colliders = go->GetComponentsOfType<CCollider>();
 			for (std::shared_ptr<CCollider> collider : colliders)
 			{
-				if(collider != shared_from_base<CCollider>())
+				if (collider != shared_from_base<CCollider>())
 					CheckForCollision(collider, deltaTime);
 			}
 		}
@@ -291,7 +260,7 @@ namespace Engine
 		sf::Vector2f corners2[4];
 		other->GetRect().GetCorners(corners2);
 		//sf::Vector2f axes2[2];
-		other->GetRect().GetAxes(axes+2);
+		other->GetRect().GetAxes(axes + 2);
 
 		//std::vector<sf::Vector2f> MTVs;
 
@@ -319,7 +288,7 @@ namespace Engine
 				if (index != m_OverlappingWith.end())
 				{
 					m_OverlappingWith.erase(index);
-					std::cout << "Collision End!" << m_GameObject->name << " overlapping with " << other->m_GameObject->name << std::endl;
+					//std::cout << "Collision End!" << m_GameObject->name << " overlapping with " << other->m_GameObject->name << std::endl;
 				}
 				return;
 			}
@@ -338,10 +307,10 @@ namespace Engine
 		HandleCollision(other, MTV, sf::Vector2f(), deltaTime);
 
 	}
-	float CCollider::GetMomentOfInertia()
+	float CCollider::GetMomentOfInertia() const
 	{
 		return std::powf(m_Rect.GetSize().x, 2.f) + std::powf(m_Rect.GetSize().y, 2.f) / 12.f;
 	}
 
-	
+
 }
